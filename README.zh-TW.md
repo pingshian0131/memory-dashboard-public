@@ -4,6 +4,8 @@
 
 LanceDB 向量記憶管理儀表板 — 瀏覽、搜尋、編輯向量記憶，以及管理 workspace 檔案。
 
+**線上 Demo: [demo-memory-dashboard.simple-web.cc](https://demo-memory-dashboard.simple-web.cc/)**
+
 ## 功能
 
 - **記憶瀏覽** — 以 scope / category 篩選，支援全文搜尋

@@ -4,6 +4,8 @@
 
 A web-based dashboard for managing LanceDB vector memories — browse, search, edit memories and manage workspace files.
 
+**Live Demo: [demo-memory-dashboard.simple-web.cc](https://demo-memory-dashboard.simple-web.cc/)**
+
 ## Features
 
 - **Memory Browser** — Filter by scope / category, full-text search
