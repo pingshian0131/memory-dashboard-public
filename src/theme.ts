@@ -1,0 +1,67 @@
+export const theme = {
+  bg: '#0d1117',
+  bgCard: '#161b22',
+  bgHover: '#1c2129',
+  border: '#30363d',
+  green: '#39d353',
+  greenDim: '#238636',
+  cyan: '#58a6ff',
+  yellow: '#d29922',
+  red: '#f85149',
+  text: '#c9d1d9',
+  textDim: '#8b949e',
+  font: "'JetBrains Mono', 'Fira Code', monospace",
+} as const;
+
+export const css = {
+  card: {
+    background: theme.bgCard,
+    border: `1px solid ${theme.border}`,
+    borderRadius: '4px',
+    padding: '12px 16px',
+  },
+  input: {
+    background: '#010409',
+    border: `1px solid ${theme.border}`,
+    borderRadius: '4px',
+    color: theme.green,
+    fontFamily: theme.font,
+    fontSize: '13px',
+    padding: '8px 12px',
+    outline: 'none',
+    width: '100%',
+  },
+  button: {
+    background: theme.greenDim,
+    border: 'none',
+    borderRadius: '4px',
+    color: '#fff',
+    fontFamily: theme.font,
+    fontSize: '13px',
+    padding: '6px 16px',
+    cursor: 'pointer',
+  },
+  buttonDanger: {
+    background: 'transparent',
+    border: `1px solid ${theme.red}`,
+    borderRadius: '4px',
+    color: theme.red,
+    fontFamily: theme.font,
+    fontSize: '12px',
+    padding: '4px 8px',
+    cursor: 'pointer',
+  },
+  tag: {
+    color: theme.cyan,
+    fontSize: '12px',
+  },
+  score: {
+    color: theme.yellow,
+    fontWeight: 700,
+    fontSize: '14px',
+  },
+  dimText: {
+    color: theme.textDim,
+    fontSize: '12px',
+  },
+} as const;
