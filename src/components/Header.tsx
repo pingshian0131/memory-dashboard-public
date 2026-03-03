@@ -33,7 +33,7 @@ export function Header({ dashboard, onDashboardChange, memoryPage, onMemoryPageC
         borderBottom: `1px solid ${theme.border}`,
       }}>
         <span style={{ color: theme.green, fontWeight: 700, fontSize: 15 }}>
-          {'>'} Memory Dashboard
+          {'>'} OpenClaw Dashboard
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <nav style={{ display: 'flex', gap: 4 }}>
