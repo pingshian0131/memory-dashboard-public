@@ -12,7 +12,7 @@ export function Header() {
       borderBottom: `1px solid ${theme.border}`,
     }}>
       <span style={{ color: theme.green, fontWeight: 700, fontSize: 15 }}>
-        {'>'} OpenClaw Dashboard
+        {'>'} Agents Dashboard
       </span>
       <span style={{ color: theme.textDim, fontSize: 12 }}>v0.1.0</span>
     </header>

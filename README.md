@@ -1,6 +1,6 @@
 [繁體中文](./README.zh-TW.md) | **English**
 
-# OpenClaw Dashboard
+# Agents Dashboard
 
 A web-based dashboard for managing LanceDB vector memories — browse, search, edit memories, manage workspace files, and explore skills.
 

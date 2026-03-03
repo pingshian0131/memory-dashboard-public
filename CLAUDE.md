@@ -1,4 +1,4 @@
-# OpenClaw Dashboard
+# Agents Dashboard
 
 LanceDB 向量記憶管理儀表板 — 瀏覽、搜尋、編輯向量記憶，管理 workspace 檔案，以及瀏覽 Skills。
 
