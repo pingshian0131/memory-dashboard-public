@@ -3,7 +3,8 @@ import OpenAI from 'openai';
 import { randomUUID } from 'node:crypto';
 
 const MEMORY_DB_PATH = process.env.MEMORY_DB_PATH || '/data/memory-db';
-const TABLE_NAME = 'memories';
+const TABLE_NAME = process.env.MEMORY_TABLE_NAME || 'memories';
+const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'text-embedding-3-small';
 
 let db: lancedb.Connection | null = null;
 let table: lancedb.Table | null = null;
@@ -37,7 +38,7 @@ export interface MemoryInput {
 
 async function embed(text: string): Promise<number[]> {
   const res = await openai.embeddings.create({
-    model: 'text-embedding-3-small',
+    model: EMBEDDING_MODEL,
     input: text,
   });
   return res.data[0].embedding;

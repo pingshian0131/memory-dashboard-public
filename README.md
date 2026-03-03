@@ -61,6 +61,8 @@ docker run -p 3001:3001 \
 | `DIST_DIR` | `../dist` | 前端靜態檔案目錄 |
 | `WORKSPACE_DIR` | `/data/workspaces` | Workspace 根目錄 |
 | `MEMORY_DB_PATH` | `/data/memory-db` | LanceDB 資料庫路徑 |
+| `MEMORY_TABLE_NAME` | `memories` | LanceDB table 名稱 |
+| `EMBEDDING_MODEL` | `text-embedding-3-small` | OpenAI embedding model |
 | `OPENAI_API_KEY` | — | OpenAI API key（非 demo 模式必填） |
 
 ## 技術架構

@@ -50,6 +50,8 @@ DEMO_MODE=true npm run server
 | `DIST_DIR` | `../dist`（相對於 server） | 前端靜態檔案目錄 |
 | `WORKSPACE_DIR` | `/data/workspaces` | Workspace 根目錄 |
 | `MEMORY_DB_PATH` | `/data/memory-db` | LanceDB 資料庫路徑 |
+| `MEMORY_TABLE_NAME` | `memories` | LanceDB table 名稱 |
+| `EMBEDDING_MODEL` | `text-embedding-3-small` | OpenAI embedding model |
 | `OPENAI_API_KEY` | —（非 demo 模式必填） | OpenAI API key，用於 embedding |
 
 ## API 路由
