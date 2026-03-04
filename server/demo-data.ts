@@ -259,6 +259,9 @@ export interface DemoCronJob {
   name: string;
   description: string;
   enabled: boolean;
+  payload?: { kind: string; message?: string; text?: string; model?: string; thinking?: boolean; timeoutSeconds?: number };
+  sessionTarget?: string;
+  wakeMode?: string;
   schedule: { kind: string; expr?: string; everyMs?: number; at?: string; tz?: string };
   state: {
     lastRunAtMs?: number;
@@ -276,6 +279,8 @@ export const DEMO_CRON_JOBS: DemoCronJob[] = [
     id: 'demo-cron-001', agentId: 'main', name: 'Daily 8AM session reset',
     description: 'Archive all agent sessions and create fresh ones.',
     enabled: true, schedule: { kind: 'cron', expr: '0 8 * * *', tz: 'UTC' },
+    payload: { kind: 'prompt', message: 'Archive all existing agent sessions.\nCreate fresh sessions for each active agent.\nReport the summary in #general channel.', model: 'claude-opus-4-6', timeoutSeconds: 120 },
+    sessionTarget: 'new', wakeMode: 'always',
     state: { lastRunAtMs: now - 2 * hour, lastRunStatus: 'ok', lastDurationMs: 43200, nextRunAtMs: now + 22 * hour, consecutiveErrors: 0 },
     delivery: { mode: 'announce', channel: 'discord', to: 'general' },
   },
@@ -283,6 +288,7 @@ export const DEMO_CRON_JOBS: DemoCronJob[] = [
     id: 'demo-cron-002', agentId: 'research', name: 'Weekly research digest (Sunday 8PM)',
     description: 'Summarize weekly research findings and push to knowledge base.',
     enabled: true, schedule: { kind: 'cron', expr: '0 20 * * 0', tz: 'UTC' },
+    payload: { kind: 'prompt', message: 'Review all research notes from the past 7 days.\nSummarize key findings by topic.\nPush the digest to the knowledge base under scope "weekly-digest".\nInclude links to source materials.', model: 'claude-opus-4-6', thinking: true, timeoutSeconds: 300 },
     state: { lastRunAtMs: now - 3 * day, lastRunStatus: 'ok', lastDurationMs: 53000, nextRunAtMs: now + 4 * day, consecutiveErrors: 0 },
     delivery: { mode: 'announce', channel: 'discord', to: 'research-updates' },
   },
@@ -290,6 +296,8 @@ export const DEMO_CRON_JOBS: DemoCronJob[] = [
     id: 'demo-cron-003', agentId: 'secretary', name: 'Weekday To Do list (09:00)',
     description: 'List pending cards from the project To Do list.',
     enabled: true, schedule: { kind: 'cron', expr: '0 9 * * 1-5', tz: 'UTC' },
+    payload: { kind: 'prompt', message: 'Check all project boards for pending and in-progress tasks.\nGroup by priority (P0, P1, P2).\nPost the daily to-do list to the secretary-updates channel.\nFlag any tasks that are overdue.' },
+    sessionTarget: 'reuse',
     state: { lastRunAtMs: now - 3 * hour, lastRunStatus: 'ok', lastDurationMs: 31190, nextRunAtMs: now + 21 * hour, consecutiveErrors: 0 },
     delivery: { mode: 'announce', channel: 'discord', to: 'secretary-updates' },
   },
@@ -297,28 +305,33 @@ export const DEMO_CRON_JOBS: DemoCronJob[] = [
     id: 'demo-cron-004', agentId: 'craftsman', name: 'Weekly code review (Sat 9AM)',
     description: 'Analyze project codebase and produce one optimization suggestion.',
     enabled: true, schedule: { kind: 'cron', expr: '0 9 * * 6', tz: 'UTC' },
+    payload: { kind: 'prompt', message: 'Run static analysis on the main codebase.\nIdentify the top 3 areas for optimization.\nFor each area, provide:\n  1. Current implementation\n  2. Suggested improvement\n  3. Expected impact\nFocus on performance, maintainability, and security.', model: 'claude-opus-4-6', thinking: true, timeoutSeconds: 600 },
     state: { lastRunAtMs: now - 5 * day, lastRunStatus: 'ok', lastDurationMs: 304289, nextRunAtMs: now + 2 * day, consecutiveErrors: 0 },
   },
   {
     id: 'demo-cron-005', agentId: 'monitor', name: 'GitHub Releases watch (every 18h)',
     description: 'Track GitHub releases for monitored repos.',
     enabled: true, schedule: { kind: 'every', everyMs: 64800000 },
+    payload: { kind: 'prompt', message: 'Check for new releases in monitored GitHub repos:\n- anthropics/claude-code\n- langchain-ai/langchain\n- lancedb/lancedb\n- vitejs/vite\nReport any new versions with changelog highlights.' },
     state: { lastRunAtMs: now - 6 * hour, lastRunStatus: 'ok', lastDurationMs: 19486, nextRunAtMs: now + 12 * hour, consecutiveErrors: 0 },
   },
   {
     id: 'demo-cron-006', agentId: 'main', name: 'Daily morning greeting (8AM)',
     description: '', enabled: true, schedule: { kind: 'cron', expr: '0 8 * * *', tz: 'UTC' },
+    payload: { kind: 'prompt', message: 'Send a good morning greeting to the team.\nInclude today\'s weather forecast for Taipei.\nMention any scheduled meetings or deadlines for today.' },
     state: { lastRunAtMs: now - 2 * hour, lastRunStatus: 'ok', lastDurationMs: 10134, nextRunAtMs: now + 22 * hour, consecutiveErrors: 0 },
   },
   {
     id: 'demo-cron-007', agentId: 'craftsman', name: 'Weekly product idea pipeline (Part 1)',
     description: 'Analysis phase — generate feature ideas with code analysis.',
     enabled: true, schedule: { kind: 'cron', expr: '0 9 * * 6', tz: 'UTC' },
+    payload: { kind: 'prompt', message: 'Analyze the current product roadmap and recent user feedback.\nGenerate 5 feature ideas that align with our Q2 goals.\nFor each idea, provide effort estimate (S/M/L) and potential impact.', model: 'claude-opus-4-6', thinking: true, timeoutSeconds: 600 },
     state: { lastRunAtMs: now - 5 * day, lastRunStatus: 'error', lastDurationMs: 360043, nextRunAtMs: now + 2 * day, consecutiveErrors: 1, lastError: 'Error: job execution timed out' },
   },
   {
     id: 'demo-cron-008', agentId: 'monitor', name: 'One-time reminder: renew subscription',
     description: '', enabled: false, schedule: { kind: 'at', at: '2025-03-05T01:00:00.000Z' },
+    payload: { kind: 'prompt', text: 'Remind the team to renew the annual cloud subscription before it expires on March 10.' },
     state: { lastRunAtMs: now - 10 * day, lastRunStatus: 'ok', lastDurationMs: 6743, consecutiveErrors: 0 },
   },
 ];

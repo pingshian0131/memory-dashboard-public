@@ -89,3 +89,20 @@ export function fetchAgents(): Promise<AgentsResponse> {
 export function fetchCronJobs(): Promise<CronJobsResponse> {
   return request('/cron-jobs');
 }
+
+export function updateCronJob(id: string, data: { enabled?: boolean; message?: string }): Promise<{ ok: boolean }> {
+  return request(`/cron-jobs/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+// Skills CRUD API
+export function deleteSkill(owner: string, skillName: string): Promise<{ ok: boolean }> {
+  return request(`/skills/${encodeURIComponent(owner)}/${encodeURIComponent(skillName)}`, { method: 'DELETE' });
+}
+
+export function moveSkill(from: { owner: string; skillName: string }, to: { owner: string }): Promise<{ ok: boolean }> {
+  return request('/skills/move', { method: 'POST', body: JSON.stringify({ from, to }) });
+}
+
+export function copySkill(from: { owner: string; skillName: string }, to: { owner: string }): Promise<{ ok: boolean }> {
+  return request('/skills/copy', { method: 'POST', body: JSON.stringify({ from, to }) });
+}

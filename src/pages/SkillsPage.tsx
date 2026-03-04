@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { SkillOwner, Skill, SkillSelection } from '../types';
+import { deleteSkill, moveSkill } from '../api';
 import { css, theme } from '../theme';
 
 const SECTION_LABELS: Record<string, string> = {
@@ -17,17 +18,58 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function SkillCard({ skill }: { skill: Skill }) {
+function SkillCard({
+  skill,
+  ownerName,
+  allOwners,
+  onRefresh,
+}: {
+  skill: Skill;
+  ownerName: string;
+  allOwners: SkillOwner[];
+  onRefresh: () => void;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const otherOwners = allOwners.filter(o => o.name !== ownerName);
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete skill "${skill.name}" from ${ownerName}?`)) return;
+    setBusy(true);
+    try {
+      await deleteSkill(ownerName, skill.name);
+      onRefresh();
+    } catch (e: any) {
+      alert(`Failed: ${e.message}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleMove = async (targetOwner: string) => {
+    if (!confirm(`Move "${skill.name}" from ${ownerName} to ${targetOwner}?`)) return;
+    setBusy(true);
+    try {
+      await moveSkill({ owner: ownerName, skillName: skill.name }, { owner: targetOwner });
+      onRefresh();
+    } catch (e: any) {
+      alert(`Failed: ${e.message}`);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <div style={{ ...css.card, marginBottom: 8 }}>
+    <div style={{ ...css.card, marginBottom: 8, opacity: busy ? 0.5 : 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <span style={{ color: theme.cyan, fontSize: 14, fontWeight: 700 }}>{skill.name}</span>
           {skill.version && <span style={{ color: theme.textDim, fontSize: 11, marginLeft: 8 }}>v{skill.version}</span>}
         </div>
-        <span style={{ ...css.dimText }}>{formatSize(skill.totalSize)}</span>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span style={{ ...css.dimText }}>{formatSize(skill.totalSize)}</span>
+        </div>
       </div>
       {skill.description && (
         <div style={{ color: theme.text, fontSize: 12, marginTop: 4, lineHeight: 1.5 }}>{skill.description}</div>
@@ -64,6 +106,47 @@ function SkillCard({ skill }: { skill: Skill }) {
           </div>
         )}
       </div>
+
+      {/* Actions */}
+      <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        {otherOwners.length > 0 && (
+          <select
+            onChange={e => { if (e.target.value) handleMove(e.target.value); e.target.value = ''; }}
+            disabled={busy}
+            style={{
+              background: theme.bg,
+              color: theme.textDim,
+              border: `1px solid ${theme.border}`,
+              borderRadius: 4,
+              padding: '3px 6px',
+              fontSize: 11,
+              fontFamily: theme.font,
+              cursor: 'pointer',
+            }}
+          >
+            <option value="">Move to...</option>
+            {otherOwners.map(o => (
+              <option key={o.name} value={o.name}>{sectionLabel(o)}</option>
+            ))}
+          </select>
+        )}
+        <button
+          onClick={handleDelete}
+          disabled={busy}
+          style={{
+            background: 'transparent',
+            color: theme.red,
+            border: `1px solid ${theme.red}`,
+            borderRadius: 4,
+            padding: '3px 10px',
+            fontSize: 11,
+            fontFamily: theme.font,
+            cursor: busy ? 'wait' : 'pointer',
+          }}
+        >
+          Delete
+        </button>
+      </div>
     </div>
   );
 }
@@ -74,9 +157,10 @@ interface SkillsContentProps {
   selection: SkillSelection;
   loading: boolean;
   error: string;
+  onRefresh: () => void;
 }
 
-export function SkillsContent({ owners, totalSkills, selection, loading, error }: SkillsContentProps) {
+export function SkillsContent({ owners, totalSkills, selection, loading, error, onRefresh }: SkillsContentProps) {
   const selectedOwner = selection.type === 'owner'
     ? owners.find(o => o.name === selection.name)
     : selection.type === 'skill'
@@ -122,14 +206,14 @@ export function SkillsContent({ owners, totalSkills, selection, loading, error }
         {sectionLabel(owner)} <span style={{ color: theme.textDim, fontWeight: 400, fontSize: 13 }}>({owner.skills.length} skills)</span>
       </h2>
       {owner.skills.map(skill => (
-        <SkillCard key={skill.name} skill={skill} />
+        <SkillCard key={skill.name} skill={skill} ownerName={owner.name} allOwners={owners} onRefresh={onRefresh} />
       ))}
     </div>
   );
 
-  const renderSkillDetail = (skill: Skill) => (
+  const renderSkillDetail = (skill: Skill, ownerName: string) => (
     <div>
-      <SkillCard skill={skill} />
+      <SkillCard skill={skill} ownerName={ownerName} allOwners={owners} onRefresh={onRefresh} />
     </div>
   );
 
@@ -145,8 +229,8 @@ export function SkillsContent({ owners, totalSkills, selection, loading, error }
   if (selection.type === 'owner' && selectedOwner) {
     return renderOwnerSkills(selectedOwner);
   }
-  if (selection.type === 'skill' && selectedSkill) {
-    return renderSkillDetail(selectedSkill);
+  if (selection.type === 'skill' && selectedSkill && selectedOwner) {
+    return renderSkillDetail(selectedSkill, selectedOwner.name);
   }
   return (
     <div style={{ textAlign: 'center', padding: 60, color: theme.textDim }}>

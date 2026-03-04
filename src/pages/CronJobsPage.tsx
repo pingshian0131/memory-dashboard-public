@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { CronJob, CronFilter } from '../types';
-import { fetchCronJobs } from '../api';
+import { fetchCronJobs, updateCronJob } from '../api';
 import { css, theme } from '../theme';
 
 function formatDuration(ms: number): string {
@@ -10,10 +10,6 @@ function formatDuration(ms: number): string {
   const mins = Math.floor(secs / 60);
   const remSecs = Math.floor(secs % 60);
   return `${mins}m ${remSecs}s`;
-}
-
-function formatTime(ms: number): string {
-  return new Date(ms).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
 }
 
 function relativeTime(ms: number): string {
@@ -51,8 +47,43 @@ function statusColor(status?: string): string {
   return theme.textDim;
 }
 
-function JobCard({ job }: { job: CronJob }) {
+function JobCard({ job, onUpdate }: { job: CronJob; onUpdate: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editMessage, setEditMessage] = useState('');
+  const [saving, setSaving] = useState(false);
   const hasError = job.state.consecutiveErrors > 0 || job.state.lastRunStatus === 'error';
+  const payloadText = job.payload?.message || job.payload?.text || '';
+
+  const handleToggleEnabled = async () => {
+    setSaving(true);
+    try {
+      await updateCronJob(job.id, { enabled: !job.enabled });
+      onUpdate();
+    } catch (e: any) {
+      alert(`Failed: ${e.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveMessage = async () => {
+    setSaving(true);
+    try {
+      await updateCronJob(job.id, { message: editMessage });
+      setEditing(false);
+      onUpdate();
+    } catch (e: any) {
+      alert(`Failed: ${e.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEdit = () => {
+    setEditMessage(payloadText);
+    setEditing(true);
+  };
 
   return (
     <div style={{
@@ -64,7 +95,11 @@ function JobCard({ job }: { job: CronJob }) {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: theme.text, fontWeight: 600, fontSize: 13, lineHeight: 1.3 }}>
+          <div
+            onClick={() => setExpanded(!expanded)}
+            style={{ color: theme.text, fontWeight: 600, fontSize: 13, lineHeight: 1.3, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <span style={{ fontSize: 10, color: theme.textDim }}>{expanded ? 'v' : '>'}</span>
             {job.name}
           </div>
           {job.description && (
@@ -146,6 +181,147 @@ function JobCard({ job }: { job: CronJob }) {
             <span style={{ fontWeight: 700 }}>({job.state.consecutiveErrors}x) </span>
           )}
           {job.state.lastError.length > 120 ? job.state.lastError.slice(0, 120) + '...' : job.state.lastError}
+        </div>
+      )}
+
+      {/* Expanded details */}
+      {expanded && (
+        <div style={{ marginTop: 10, borderTop: `1px solid ${theme.border}`, paddingTop: 8 }}>
+          {/* Payload / Prompt */}
+          {payloadText && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: theme.green, fontWeight: 700, marginBottom: 4 }}>PAYLOAD (PROMPT)</div>
+              {editing ? (
+                <div>
+                  <textarea
+                    value={editMessage}
+                    onChange={e => setEditMessage(e.target.value)}
+                    style={{
+                      width: '100%',
+                      minHeight: 100,
+                      background: theme.bg,
+                      color: theme.text,
+                      border: `1px solid ${theme.cyan}`,
+                      borderRadius: 4,
+                      padding: 8,
+                      fontFamily: theme.font,
+                      fontSize: 12,
+                      resize: 'vertical',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                    <button
+                      onClick={handleSaveMessage}
+                      disabled={saving}
+                      style={{
+                        background: theme.green,
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: 4,
+                        padding: '4px 12px',
+                        fontSize: 11,
+                        fontFamily: theme.font,
+                        cursor: saving ? 'wait' : 'pointer',
+                      }}
+                    >
+                      {saving ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setEditing(false)}
+                      disabled={saving}
+                      style={{
+                        background: 'transparent',
+                        color: theme.textDim,
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: 4,
+                        padding: '4px 12px',
+                        fontSize: 11,
+                        fontFamily: theme.font,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <pre style={{
+                  background: theme.bg,
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: 4,
+                  padding: 8,
+                  fontSize: 11,
+                  color: theme.textDim,
+                  lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  margin: 0,
+                  maxHeight: 200,
+                  overflow: 'auto',
+                }}>
+                  {payloadText}
+                </pre>
+              )}
+            </div>
+          )}
+
+          {/* Delivery info */}
+          {job.delivery && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: theme.green, fontWeight: 700, marginBottom: 4 }}>DELIVERY</div>
+              <div style={{ fontSize: 12, color: theme.textDim }}>
+                {job.delivery.mode} / {job.delivery.channel} → {job.delivery.to}
+              </div>
+            </div>
+          )}
+
+          {/* Other metadata */}
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 11, color: theme.textDim, marginBottom: 8 }}>
+            {job.sessionTarget && <span>session: {job.sessionTarget}</span>}
+            {job.wakeMode && <span>wake: {job.wakeMode}</span>}
+            {job.payload?.model && <span>model: {job.payload.model}</span>}
+            {job.payload?.thinking != null && <span>thinking: {job.payload.thinking ? 'yes' : 'no'}</span>}
+            {job.payload?.timeoutSeconds != null && <span>timeout: {job.payload.timeoutSeconds}s</span>}
+            {job.payload?.kind && <span>kind: {job.payload.kind}</span>}
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleToggleEnabled}
+              disabled={saving}
+              style={{
+                background: job.enabled ? 'transparent' : theme.greenDim,
+                color: job.enabled ? theme.yellow : '#fff',
+                border: `1px solid ${job.enabled ? theme.yellow : theme.greenDim}`,
+                borderRadius: 4,
+                padding: '4px 12px',
+                fontSize: 11,
+                fontFamily: theme.font,
+                cursor: saving ? 'wait' : 'pointer',
+              }}
+            >
+              {job.enabled ? 'Disable' : 'Enable'}
+            </button>
+            {payloadText && !editing && (
+              <button
+                onClick={startEdit}
+                style={{
+                  background: 'transparent',
+                  color: theme.cyan,
+                  border: `1px solid ${theme.cyan}`,
+                  borderRadius: 4,
+                  padding: '4px 12px',
+                  fontSize: 11,
+                  fontFamily: theme.font,
+                  cursor: 'pointer',
+                }}
+              >
+                Edit Prompt
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -271,7 +447,7 @@ export function CronJobsPage({
         </span>
       </div>
       {filtered.map(job => (
-        <JobCard key={job.id} job={job} />
+        <JobCard key={job.id} job={job} onUpdate={load} />
       ))}
     </div>
   );

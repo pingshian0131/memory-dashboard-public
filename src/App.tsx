@@ -48,7 +48,8 @@ export default function App() {
   const [agentsError, setAgentsError] = useState('');
   const [agentSelection, setAgentSelection] = useState<AgentSelection>({ type: 'overview' });
 
-  useEffect(() => {
+  const loadSkills = useCallback(() => {
+    setSkillsLoading(true);
     fetchSkills()
       .then(data => {
         setSkillOwners(data.owners);
@@ -59,6 +60,10 @@ export default function App() {
         setSkillsError(e.message);
         setSkillsLoading(false);
       });
+  }, []);
+
+  useEffect(() => {
+    loadSkills();
 
     fetchAgents()
       .then(data => {
@@ -69,7 +74,7 @@ export default function App() {
         setAgentsError(e.message);
         setAgentsLoading(false);
       });
-  }, []);
+  }, [loadSkills]);
 
   const handlePageSidebarChange = useCallback((content: ReactNode) => {
     setPageSidebar(content);
@@ -309,6 +314,7 @@ export default function App() {
             selection={skillSelection}
             loading={skillsLoading}
             error={skillsError}
+            onRefresh={loadSkills}
           />
         )}
       </Layout>

@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { getDemoSkills } from './demo-store.js';
+import { getDemoSkills, deleteDemoSkill, moveDemoSkill, copyDemoSkill } from './demo-store.js';
 
 const DEMO_MODE = process.env.DEMO_MODE === 'true';
 const WORKSPACE_DIR = process.env.WORKSPACE_DIR || '/data/workspaces';
@@ -110,45 +110,86 @@ async function scanSkillsDir(dir: string): Promise<SkillInfo[]> {
   return skills;
 }
 
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
 /** Handle /api/skills */
 export async function handleSkillsApi(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-  if (url.pathname !== '/api/skills' || req.method !== 'GET') return false;
 
-  // Demo mode: return fake skills data
-  if (DEMO_MODE) {
-    json(res, getDemoSkills());
+  // GET /api/skills — list all skills
+  if (url.pathname === '/api/skills' && req.method === 'GET') {
+    if (DEMO_MODE) {
+      json(res, getDemoSkills());
+      return true;
+    }
+
+    const owners: SkillOwner[] = [];
+    const globalSkills = await scanSkillsDir(SKILLS_DIR);
+    if (globalSkills.length > 0) owners.push({ name: 'global', label: 'Global', skills: globalSkills });
+    const sharedSkills = await scanSkillsDir(join(WORKSPACE_DIR, 'skills'));
+    if (sharedSkills.length > 0) owners.push({ name: 'shared', label: 'Shared', skills: sharedSkills });
+    try {
+      const entries = await readdir(WORKSPACE_DIR, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() || !entry.name.startsWith('workspace-')) continue;
+        const agentSkills = await scanSkillsDir(join(WORKSPACE_DIR, entry.name, 'skills'));
+        if (agentSkills.length > 0) {
+          const agentName = entry.name.replace('workspace-', '');
+          owners.push({ name: entry.name, label: agentName, skills: agentSkills });
+        }
+      }
+    } catch { /* WORKSPACE_DIR doesn't exist */ }
+    const totalSkills = owners.reduce((sum, o) => sum + o.skills.length, 0);
+    json(res, { owners, totalSkills });
     return true;
   }
 
-  const owners: SkillOwner[] = [];
-
-  // 1. Global skills
-  const globalSkills = await scanSkillsDir(SKILLS_DIR);
-  if (globalSkills.length > 0) {
-    owners.push({ name: 'global', label: 'Global', skills: globalSkills });
-  }
-
-  // 2. Shared skills ($WORKSPACE_DIR/skills/)
-  const sharedSkills = await scanSkillsDir(join(WORKSPACE_DIR, 'skills'));
-  if (sharedSkills.length > 0) {
-    owners.push({ name: 'shared', label: 'Shared', skills: sharedSkills });
-  }
-
-  // 3. Agent skills ($WORKSPACE_DIR/workspace-*/skills/)
-  try {
-    const entries = await readdir(WORKSPACE_DIR, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory() || !entry.name.startsWith('workspace-')) continue;
-      const agentSkills = await scanSkillsDir(join(WORKSPACE_DIR, entry.name, 'skills'));
-      if (agentSkills.length > 0) {
-        const agentName = entry.name.replace('workspace-', '');
-        owners.push({ name: entry.name, label: agentName, skills: agentSkills });
-      }
+  // DELETE /api/skills/:owner/:skillName
+  const deleteMatch = url.pathname.match(/^\/api\/skills\/([^/]+)\/([^/]+)$/);
+  if (deleteMatch && req.method === 'DELETE') {
+    if (DEMO_MODE) {
+      const [, owner, skillName] = deleteMatch.map(decodeURIComponent);
+      const ok = deleteDemoSkill(owner, skillName);
+      if (!ok) { json(res, { error: 'skill not found' }, 404); return true; }
+      json(res, { ok: true });
+      return true;
     }
-  } catch { /* WORKSPACE_DIR doesn't exist */ }
+    json(res, { error: 'not supported' }, 501);
+    return true;
+  }
 
-  const totalSkills = owners.reduce((sum, o) => sum + o.skills.length, 0);
-  json(res, { owners, totalSkills });
-  return true;
+  // POST /api/skills/move
+  if (url.pathname === '/api/skills/move' && req.method === 'POST') {
+    if (DEMO_MODE) {
+      const body = JSON.parse(await readBody(req));
+      const err = moveDemoSkill(body.from?.owner, body.from?.skillName, body.to?.owner);
+      if (err) { json(res, { error: err }, 400); return true; }
+      json(res, { ok: true });
+      return true;
+    }
+    json(res, { error: 'not supported' }, 501);
+    return true;
+  }
+
+  // POST /api/skills/copy
+  if (url.pathname === '/api/skills/copy' && req.method === 'POST') {
+    if (DEMO_MODE) {
+      const body = JSON.parse(await readBody(req));
+      const err = copyDemoSkill(body.from?.owner, body.from?.skillName, body.to?.owner);
+      if (err) { json(res, { error: err }, 400); return true; }
+      json(res, { ok: true });
+      return true;
+    }
+    json(res, { error: 'not supported' }, 501);
+    return true;
+  }
+
+  return false;
 }

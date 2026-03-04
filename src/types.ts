@@ -103,12 +103,24 @@ export type AgentSelection =
   | { type: 'agent'; id: string };
 
 // Cron Jobs 型別
+export interface CronJobPayload {
+  kind: string;
+  message?: string;
+  text?: string;
+  model?: string;
+  thinking?: boolean;
+  timeoutSeconds?: number;
+}
+
 export interface CronJob {
   id: string;
   agentId: string;
   name: string;
   description: string;
   enabled: boolean;
+  payload?: CronJobPayload;
+  sessionTarget?: string;
+  wakeMode?: string;
   schedule: {
     kind: string;
     expr?: string;

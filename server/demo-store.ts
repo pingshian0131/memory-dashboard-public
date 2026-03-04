@@ -171,7 +171,80 @@ export function getDemoWorkspaceMemoryFile(wsName: string, fileName: string): st
 
 // === Skills helpers for demo mode ===
 
+// Mutable copy of demo skills (deep clone)
+let skillOwners: typeof DEMO_SKILLS = JSON.parse(JSON.stringify(DEMO_SKILLS));
+
 export function getDemoSkills() {
-  const totalSkills = DEMO_SKILLS.reduce((sum, o) => sum + o.skills.length, 0);
-  return { owners: DEMO_SKILLS, totalSkills };
+  const totalSkills = skillOwners.reduce((sum, o) => sum + o.skills.length, 0);
+  return { owners: skillOwners, totalSkills };
+}
+
+export function deleteDemoSkill(ownerName: string, skillName: string): boolean {
+  const owner = skillOwners.find(o => o.name === ownerName);
+  if (!owner) return false;
+  const idx = owner.skills.findIndex(s => s.name === skillName);
+  if (idx === -1) return false;
+  owner.skills.splice(idx, 1);
+  // Remove owner if no skills left
+  if (owner.skills.length === 0) {
+    skillOwners = skillOwners.filter(o => o.name !== ownerName);
+  }
+  return true;
+}
+
+export function moveDemoSkill(fromOwner: string, skillName: string, toOwner: string): string | null {
+  const src = skillOwners.find(o => o.name === fromOwner);
+  if (!src) return 'source owner not found';
+  const skillIdx = src.skills.findIndex(s => s.name === skillName);
+  if (skillIdx === -1) return 'skill not found';
+  let dst = skillOwners.find(o => o.name === toOwner);
+  if (dst && dst.skills.some(s => s.name === skillName)) return 'skill already exists at destination';
+  // Create destination owner if needed
+  if (!dst) {
+    dst = { name: toOwner, label: toOwner.replace('workspace-', ''), skills: [] };
+    skillOwners.push(dst);
+  }
+  const [skill] = src.skills.splice(skillIdx, 1);
+  dst.skills.push(skill);
+  if (src.skills.length === 0) {
+    skillOwners = skillOwners.filter(o => o.name !== fromOwner);
+  }
+  return null; // success
+}
+
+export function copyDemoSkill(fromOwner: string, skillName: string, toOwner: string): string | null {
+  const src = skillOwners.find(o => o.name === fromOwner);
+  if (!src) return 'source owner not found';
+  const skill = src.skills.find(s => s.name === skillName);
+  if (!skill) return 'skill not found';
+  let dst = skillOwners.find(o => o.name === toOwner);
+  if (dst && dst.skills.some(s => s.name === skillName)) return 'skill already exists at destination';
+  if (!dst) {
+    dst = { name: toOwner, label: toOwner.replace('workspace-', ''), skills: [] };
+    skillOwners.push(dst);
+  }
+  dst.skills.push(JSON.parse(JSON.stringify(skill)));
+  return null;
+}
+
+// === Cron Jobs helpers for demo mode ===
+
+import { DEMO_CRON_JOBS, type DemoCronJob } from './demo-data.js';
+
+// Mutable copy
+let cronJobs: DemoCronJob[] = JSON.parse(JSON.stringify(DEMO_CRON_JOBS));
+
+export function getDemoCronJobs(): DemoCronJob[] {
+  return cronJobs;
+}
+
+export function updateDemoCronJob(id: string, data: { enabled?: boolean; message?: string }): DemoCronJob | null {
+  const job = cronJobs.find(j => j.id === id);
+  if (!job) return null;
+  if (data.enabled !== undefined) job.enabled = data.enabled;
+  if (data.message !== undefined) {
+    if (!job.payload) job.payload = { kind: 'prompt' };
+    job.payload.message = data.message;
+  }
+  return job;
 }
