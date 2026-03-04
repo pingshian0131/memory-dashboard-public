@@ -1,6 +1,6 @@
 {
   "name": "@pingshian/agents-terminal-dashboard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Dashboard for OpenClaw agents — memory, agents, cron jobs, skills",
   "bin": {
@@ -20,7 +20,13 @@
     "start": "node bin/cli.js",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["openclaw", "agents", "dashboard", "memory", "cron"],
+  "keywords": [
+    "openclaw",
+    "agents",
+    "dashboard",
+    "memory",
+    "cron"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
