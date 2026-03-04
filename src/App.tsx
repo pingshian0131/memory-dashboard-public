@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { AppPage, SkillOwner, SkillSelection } from './types';
-import { fetchSkills } from './api';
+import type { AppPage, SkillOwner, SkillSelection, AgentInfo, AgentSelection } from './types';
+import { fetchSkills, fetchAgents } from './api';
 import { Header } from './components/Header';
 import { Layout } from './components/Layout';
 import { LanceDBPage } from './pages/LanceDBPage';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { StatsPage } from './pages/StatsPage';
 import { SkillsContent, sectionLabel } from './pages/SkillsPage';
+import { AgentsPage } from './pages/AgentsPage';
+import { CronJobsPage } from './pages/CronJobsPage';
 import { css, theme } from './theme';
 
 const memoryNavItems: { id: AppPage; label: string }[] = [
@@ -15,13 +17,23 @@ const memoryNavItems: { id: AppPage; label: string }[] = [
   { id: 'stats', label: 'Stats' },
 ];
 
+type SidebarSection = 'memory' | 'agents' | 'cron-jobs' | 'skills';
+
+const memoryPages: AppPage[] = ['lancedb', 'workspaces', 'stats'];
+
+function pageToSection(p: AppPage): SidebarSection {
+  if (memoryPages.includes(p)) return 'memory';
+  if (p === 'agents') return 'agents';
+  if (p === 'cron-jobs') return 'cron-jobs';
+  return 'skills';
+}
+
 export default function App() {
   const [page, setPage] = useState<AppPage>('lancedb');
   const [pageSidebar, setPageSidebar] = useState<ReactNode>(null);
 
   // Sidebar collapse — 展開一個自動收合另一個
-  const [memoryExpanded, setMemoryExpanded] = useState(true);
-  const [skillsExpanded, setSkillsExpanded] = useState(false);
+  const [expanded, setExpanded] = useState<SidebarSection>('memory');
 
   // Skills data (loaded at App level for sidebar)
   const [skillOwners, setSkillOwners] = useState<SkillOwner[]>([]);
@@ -29,6 +41,12 @@ export default function App() {
   const [skillsLoading, setSkillsLoading] = useState(true);
   const [skillsError, setSkillsError] = useState('');
   const [skillSelection, setSkillSelection] = useState<SkillSelection>({ type: 'overview' });
+
+  // Agents data (loaded at App level for sidebar)
+  const [agentsList, setAgentsList] = useState<AgentInfo[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
+  const [agentsError, setAgentsError] = useState('');
+  const [agentSelection, setAgentSelection] = useState<AgentSelection>({ type: 'overview' });
 
   useEffect(() => {
     fetchSkills()
@@ -41,11 +59,26 @@ export default function App() {
         setSkillsError(e.message);
         setSkillsLoading(false);
       });
+
+    fetchAgents()
+      .then(data => {
+        setAgentsList(data.agents);
+        setAgentsLoading(false);
+      })
+      .catch(e => {
+        setAgentsError(e.message);
+        setAgentsLoading(false);
+      });
   }, []);
 
   const handlePageSidebarChange = useCallback((content: ReactNode) => {
     setPageSidebar(content);
   }, []);
+
+  // Keep expanded section in sync with page
+  useEffect(() => {
+    setExpanded(pageToSection(page));
+  }, [page]);
 
   // Group owners into sections
   const globalOwners = skillOwners.filter(o => o.name === 'global');
@@ -112,33 +145,44 @@ export default function App() {
     );
   };
 
+  // Section header helper
+  const sectionHeader = (
+    section: SidebarSection,
+    label: string,
+    count?: number,
+    defaultPage: AppPage = section as AppPage,
+  ) => (
+    <div
+      onClick={() => {
+        if (expanded === section) return;
+        setExpanded(section);
+        setPage(defaultPage);
+        if (section === 'skills') setSkillSelection({ type: 'overview' });
+        if (section === 'agents') setAgentSelection({ type: 'overview' });
+      }}
+      style={{
+        padding: '0 16px 8px',
+        color: expanded === section ? theme.green : theme.textDim,
+        fontSize: 12,
+        fontWeight: 700,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        userSelect: 'none',
+      }}
+    >
+      <span style={{ fontSize: 10 }}>{expanded === section ? 'v' : '>'}</span>
+      {label}
+      {count != null && <span style={{ fontWeight: 400, fontSize: 11 }}>({count})</span>}
+    </div>
+  );
+
   const unifiedSidebar = (
     <div>
       {/* MEMORY section */}
-      <div
-        onClick={() => {
-          const next = !memoryExpanded;
-          setMemoryExpanded(next);
-          if (next) {
-            setSkillsExpanded(false);
-            if (page === 'skills') setPage('lancedb');
-          }
-        }}
-        style={{
-          padding: '0 16px 8px',
-          color: page !== 'skills' ? theme.green : theme.textDim,
-          fontSize: 12,
-          fontWeight: 700,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          userSelect: 'none',
-        }}
-      >
-        <span style={{ fontSize: 10 }}>{memoryExpanded ? 'v' : '>'}</span> MEMORY
-      </div>
-      {memoryExpanded && (
+      {sectionHeader('memory', 'MEMORY', undefined, 'lancedb')}
+      {expanded === 'memory' && (
         <>
           {memoryNavItems.map(item => (
             <div
@@ -156,8 +200,6 @@ export default function App() {
               {item.label}
             </div>
           ))}
-
-          {/* Page-specific sidebar (SCOPES, WORKSPACES, etc.) */}
           {pageSidebar && (
             <div style={{ borderTop: `1px solid ${theme.border}`, marginTop: 8, paddingTop: 8 }}>
               {pageSidebar}
@@ -166,33 +208,64 @@ export default function App() {
         </>
       )}
 
+      {/* AGENTS section */}
+      <div style={{ borderTop: `1px solid ${theme.border}`, marginTop: 8, paddingTop: 8 }}>
+        {sectionHeader('agents', 'AGENTS', agentsLoading ? undefined : agentsList.length)}
+        {expanded === 'agents' && (
+          <>
+            {agentsLoading ? (
+              <div style={{ padding: '4px 16px', ...css.dimText }}>loading...</div>
+            ) : agentsError ? (
+              <div style={{ padding: '4px 16px', color: theme.red, fontSize: 12 }}>{agentsError}</div>
+            ) : (
+              <>
+                <div
+                  onClick={() => { setPage('agents'); setAgentSelection({ type: 'overview' }); }}
+                  style={{
+                    padding: '5px 16px',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    color: page === 'agents' && agentSelection.type === 'overview' ? theme.green : theme.textDim,
+                    background: page === 'agents' && agentSelection.type === 'overview' ? theme.bgHover : 'transparent',
+                  }}
+                >
+                  Overview
+                </div>
+                {agentsList.map(agent => (
+                  <div
+                    key={agent.id}
+                    onClick={() => { setPage('agents'); setAgentSelection({ type: 'agent', id: agent.id }); }}
+                    style={{
+                      padding: '4px 16px',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      color: page === 'agents' && agentSelection.type === 'agent' && agentSelection.id === agent.id
+                        ? theme.cyan : theme.textDim,
+                      background: page === 'agents' && agentSelection.type === 'agent' && agentSelection.id === agent.id
+                        ? theme.bgHover : 'transparent',
+                    }}
+                  >
+                    {agent.id}
+                  </div>
+                ))}
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* CRON JOBS section */}
+      <div style={{ borderTop: `1px solid ${theme.border}`, marginTop: 8, paddingTop: 8 }}>
+        {sectionHeader('cron-jobs', 'CRON JOBS')}
+        {expanded === 'cron-jobs' && pageSidebar && (
+          <div>{pageSidebar}</div>
+        )}
+      </div>
+
       {/* SKILLS section */}
       <div style={{ borderTop: `1px solid ${theme.border}`, marginTop: 8, paddingTop: 8 }}>
-        <div
-          onClick={() => {
-            const next = !skillsExpanded;
-            setSkillsExpanded(next);
-            if (next) {
-              setMemoryExpanded(false);
-              setPage('skills');
-              setSkillSelection({ type: 'overview' });
-            }
-          }}
-          style={{
-            padding: '0 16px 8px',
-            color: page === 'skills' ? theme.green : theme.textDim,
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            userSelect: 'none',
-          }}
-        >
-          <span style={{ fontSize: 10 }}>{skillsExpanded ? 'v' : '>'}</span> SKILLS {!skillsLoading && !skillsError && <span style={{ fontWeight: 400, fontSize: 11 }}>({totalSkills})</span>}
-        </div>
-        {skillsExpanded && (
+        {sectionHeader('skills', 'SKILLS', skillsLoading ? undefined : totalSkills)}
+        {expanded === 'skills' && (
           <>
             {skillsLoading ? (
               <div style={{ padding: '4px 16px', ...css.dimText }}>loading...</div>
@@ -218,6 +291,17 @@ export default function App() {
         {page === 'lancedb' && <LanceDBPage onSidebarChange={handlePageSidebarChange} />}
         {page === 'workspaces' && <WorkspacePage onSidebarChange={handlePageSidebarChange} />}
         {page === 'stats' && <StatsPage onSidebarChange={handlePageSidebarChange} />}
+        {page === 'agents' && (
+          <AgentsPage
+            agents={agentsList}
+            selection={agentSelection}
+            setSelection={setAgentSelection}
+            loading={agentsLoading}
+            error={agentsError}
+            onSidebarChange={handlePageSidebarChange}
+          />
+        )}
+        {page === 'cron-jobs' && <CronJobsPage onSidebarChange={handlePageSidebarChange} />}
         {page === 'skills' && (
           <SkillsContent
             owners={skillOwners}

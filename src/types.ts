@@ -48,7 +48,7 @@ export type Dashboard = 'memory' | 'skills';
 export type MemoryPage = 'lancedb' | 'workspaces' | 'stats';
 
 // 統一頁面導航
-export type AppPage = 'lancedb' | 'workspaces' | 'stats' | 'skills';
+export type AppPage = 'lancedb' | 'workspaces' | 'stats' | 'skills' | 'agents' | 'cron-jobs';
 
 // Skills 選取狀態
 export type SkillSelection =
@@ -76,3 +76,64 @@ export interface SkillsResponse {
   owners: SkillOwner[];
   totalSkills: number;
 }
+
+// Agents 型別
+export interface AgentInfo {
+  id: string;
+  name: string;
+  displayName: string;
+  model: string;
+  workspace: string;
+  description: string;
+  subagents: string[];
+  bindings: { channel: string; accountId: string }[];
+}
+
+export interface AgentsResponse {
+  agents: AgentInfo[];
+  defaults: {
+    model: { primary?: string; fallbacks?: string[] };
+    maxConcurrent: number;
+  };
+}
+
+// Agents 選取狀態
+export type AgentSelection =
+  | { type: 'overview' }
+  | { type: 'agent'; id: string };
+
+// Cron Jobs 型別
+export interface CronJob {
+  id: string;
+  agentId: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  schedule: {
+    kind: string;
+    expr?: string;
+    everyMs?: number;
+    at?: string;
+    tz?: string;
+  };
+  state: {
+    lastRunAtMs?: number;
+    lastRunStatus?: string;
+    lastDurationMs?: number;
+    nextRunAtMs?: number;
+    consecutiveErrors: number;
+    lastError?: string;
+  };
+  delivery?: {
+    mode: string;
+    channel: string;
+    to: string;
+  };
+}
+
+export interface CronJobsResponse {
+  jobs: CronJob[];
+}
+
+// Cron Jobs 篩選
+export type CronFilter = 'all' | 'enabled' | 'disabled' | 'errors';

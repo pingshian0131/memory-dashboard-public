@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { handleMemoryApi } from './memoryApi.js';
 import { handleWorkspaceApi } from './workspaceApi.js';
 import { handleSkillsApi } from './skillsApi.js';
+import { handleAgentsApi } from './agentsApi.js';
+import { handleCronApi } from './cronApi.js';
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -56,7 +58,7 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
   // API routes
   if (url.pathname.startsWith('/api/')) {
     try {
-      const handled = await handleMemoryApi(req, res) || await handleWorkspaceApi(req, res) || await handleSkillsApi(req, res);
+      const handled = await handleMemoryApi(req, res) || await handleWorkspaceApi(req, res) || await handleSkillsApi(req, res) || await handleAgentsApi(req, res) || await handleCronApi(req, res);
       if (!handled) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'not found' }));
@@ -78,6 +80,5 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  const demo = process.env.DEMO_MODE === 'true';
-  console.log(`Memory Dashboard running on http://0.0.0.0:${PORT}${demo ? ' [DEMO MODE]' : ''}`);
+  console.log(`Memory Dashboard running on http://0.0.0.0:${PORT}`);
 });

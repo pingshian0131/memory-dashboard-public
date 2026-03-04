@@ -2,17 +2,30 @@
 
 # Agents Dashboard
 
-LanceDB 向量記憶管理儀表板 — 瀏覽、搜尋、編輯向量記憶，管理 workspace 檔案，以及瀏覽 Skills。
+Agent 管理儀表板 — 管理記憶、agents、排程任務與 skills。
 
-**線上 Demo: [demo-memory-dashboard.simple-web.cc](https://demo-memory-dashboard.simple-web.cc/)**
+**線上 Demo: [demo-agents-dashboard.simple-web.cc](https://demo-agents-dashboard.simple-web.cc/)**
 
 ## 功能
 
+### MEMORY
 - **記憶瀏覽** — 以 scope / category 篩選，支援全文搜尋
 - **記憶管理** — 新增、編輯、刪除記憶（自動產生 embedding）
 - **Workspace 管理** — 檢視和編輯 workspace 標準檔案（MEMORY.md, IDENTITY.md 等）
-- **Skills 儀表板** — 瀏覽全域、共享、各 agent 層級的 skills
 - **統計儀表板** — 各 scope / category 的記憶數量統計
+
+### AGENTS
+- **Agent 總覽** — 列出所有 agents，顯示 model、職責描述、subagents 數量
+- **Agent 詳情** — model、workspace、subagents 列表、channel bindings
+
+### CRON JOBS
+- **排程任務列表** — 顯示所有 cron jobs，含排程表達式、啟用狀態、執行歷史
+- **狀態監控** — 上次執行結果、耗時、下次執行時間、連續錯誤數
+- **篩選** — 按 agent / 狀態（enabled/disabled/errors）篩選
+
+### SKILLS
+- **Skills 瀏覽** — 瀏覽 global / shared / agent 三層級 skills
+
 - **Demo Mode** — 內建假資料，無需外部依賴即可體驗完整功能
 
 ## 快速開始（Demo Mode）
@@ -29,8 +42,8 @@ DEMO_MODE=true npm run server
 ### Docker（Demo Mode）
 
 ```bash
-docker build -t memory-dashboard .
-docker run -p 3001:3001 -e DEMO_MODE=true memory-dashboard
+docker build -t agents-dashboard .
+docker run -p 3001:3001 -e DEMO_MODE=true agents-dashboard
 ```
 
 ## 正式使用
@@ -49,12 +62,12 @@ OPENAI_API_KEY=your-key-here \
 ### Docker（正式）
 
 ```bash
-docker build -t memory-dashboard .
+docker build -t agents-dashboard .
 docker run -p 3001:3001 \
   -v /path/to/workspaces:/data/workspaces \
   -v /path/to/memory-db:/data/memory-db \
   -e OPENAI_API_KEY=your-key-here \
-  memory-dashboard
+  agents-dashboard
 ```
 
 ## 環境變數

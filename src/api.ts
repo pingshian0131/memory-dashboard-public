@@ -1,6 +1,6 @@
-import type { Memory, MemoryInput, ScopeInfo, Stats, Workspace, SkillsResponse } from './types';
+import type { Memory, MemoryInput, ScopeInfo, Stats, Workspace, SkillsResponse, AgentsResponse, CronJobsResponse } from './types';
 
-const BASE = '/api';
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '') + '/api';
 
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -78,4 +78,14 @@ export function fetchWorkspaceMemoryFile(workspace: string, file: string): Promi
 // Skills API
 export function fetchSkills(): Promise<SkillsResponse> {
   return request('/skills');
+}
+
+// Agents API
+export function fetchAgents(): Promise<AgentsResponse> {
+  return request('/agents');
+}
+
+// Cron Jobs API
+export function fetchCronJobs(): Promise<CronJobsResponse> {
+  return request('/cron-jobs');
 }

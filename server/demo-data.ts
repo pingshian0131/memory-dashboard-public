@@ -171,6 +171,158 @@ export const DEMO_SKILLS: DemoSkillOwner[] = [
   },
 ];
 
+// === Demo agents ===
+
+export interface DemoAgent {
+  id: string;
+  name: string;
+  displayName: string;
+  model: string;
+  workspace: string;
+  description: string;
+  subagents: string[];
+  bindings: { channel: string; accountId: string }[];
+}
+
+export const DEMO_AGENTS: DemoAgent[] = [
+  {
+    id: 'main',
+    name: 'main',
+    displayName: 'Rimuru Tempest',
+    model: 'anthropic/claude-opus-4-6',
+    workspace: 'workspace',
+    description: 'Main conversation agent, handles user requests and coordinates with other agents.',
+    subagents: ['research', 'craftsman', 'secretary'],
+    bindings: [
+      { channel: 'discord', accountId: 'default' },
+      { channel: 'telegram', accountId: 'default' },
+    ],
+  },
+  {
+    id: 'research',
+    name: 'research',
+    displayName: 'Raphael',
+    model: 'anthropic/claude-opus-4-6',
+    workspace: 'workspace-research',
+    description: 'Technical research, API documentation analysis, security evaluation.',
+    subagents: ['main', 'craftsman'],
+    bindings: [{ channel: 'discord', accountId: 'research' }],
+  },
+  {
+    id: 'craftsman',
+    name: 'craftsman',
+    displayName: 'Kaijin',
+    model: 'anthropic/claude-opus-4-6',
+    workspace: 'workspace-craftsman',
+    description: 'Development standards, code decisions, frontend/backend deployment.',
+    subagents: ['main', 'research'],
+    bindings: [
+      { channel: 'discord', accountId: 'craftsman' },
+      { channel: 'telegram', accountId: 'craftsman' },
+    ],
+  },
+  {
+    id: 'secretary',
+    name: 'secretary',
+    displayName: 'Shion',
+    model: 'openai/gpt-4o',
+    workspace: 'workspace-secretary',
+    description: 'Project management, scheduling, daily administration.',
+    subagents: ['main'],
+    bindings: [{ channel: 'discord', accountId: 'secretary' }],
+  },
+  {
+    id: 'monitor',
+    name: 'monitor',
+    displayName: 'Souei',
+    model: 'openai/gpt-4o',
+    workspace: 'workspace-monitor',
+    description: 'Version tracking, intelligence monitoring, release notes.',
+    subagents: ['main', 'research'],
+    bindings: [{ channel: 'discord', accountId: 'monitor' }],
+  },
+];
+
+export const DEMO_AGENTS_DEFAULTS = {
+  model: {
+    primary: 'anthropic/claude-opus-4-6',
+    fallbacks: ['openai/gpt-4o', 'anthropic/claude-sonnet-4-5-20250929'],
+  },
+  maxConcurrent: 4,
+};
+
+// === Demo cron jobs ===
+
+export interface DemoCronJob {
+  id: string;
+  agentId: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  schedule: { kind: string; expr?: string; everyMs?: number; at?: string; tz?: string };
+  state: {
+    lastRunAtMs?: number;
+    lastRunStatus?: string;
+    lastDurationMs?: number;
+    nextRunAtMs?: number;
+    consecutiveErrors: number;
+    lastError?: string;
+  };
+  delivery?: { mode: string; channel: string; to: string };
+}
+
+export const DEMO_CRON_JOBS: DemoCronJob[] = [
+  {
+    id: 'demo-cron-001', agentId: 'main', name: 'Daily 8AM session reset',
+    description: 'Archive all agent sessions and create fresh ones.',
+    enabled: true, schedule: { kind: 'cron', expr: '0 8 * * *', tz: 'UTC' },
+    state: { lastRunAtMs: now - 2 * hour, lastRunStatus: 'ok', lastDurationMs: 43200, nextRunAtMs: now + 22 * hour, consecutiveErrors: 0 },
+    delivery: { mode: 'announce', channel: 'discord', to: 'general' },
+  },
+  {
+    id: 'demo-cron-002', agentId: 'research', name: 'Weekly research digest (Sunday 8PM)',
+    description: 'Summarize weekly research findings and push to knowledge base.',
+    enabled: true, schedule: { kind: 'cron', expr: '0 20 * * 0', tz: 'UTC' },
+    state: { lastRunAtMs: now - 3 * day, lastRunStatus: 'ok', lastDurationMs: 53000, nextRunAtMs: now + 4 * day, consecutiveErrors: 0 },
+    delivery: { mode: 'announce', channel: 'discord', to: 'research-updates' },
+  },
+  {
+    id: 'demo-cron-003', agentId: 'secretary', name: 'Weekday To Do list (09:00)',
+    description: 'List pending cards from the project To Do list.',
+    enabled: true, schedule: { kind: 'cron', expr: '0 9 * * 1-5', tz: 'UTC' },
+    state: { lastRunAtMs: now - 3 * hour, lastRunStatus: 'ok', lastDurationMs: 31190, nextRunAtMs: now + 21 * hour, consecutiveErrors: 0 },
+    delivery: { mode: 'announce', channel: 'discord', to: 'secretary-updates' },
+  },
+  {
+    id: 'demo-cron-004', agentId: 'craftsman', name: 'Weekly code review (Sat 9AM)',
+    description: 'Analyze project codebase and produce one optimization suggestion.',
+    enabled: true, schedule: { kind: 'cron', expr: '0 9 * * 6', tz: 'UTC' },
+    state: { lastRunAtMs: now - 5 * day, lastRunStatus: 'ok', lastDurationMs: 304289, nextRunAtMs: now + 2 * day, consecutiveErrors: 0 },
+  },
+  {
+    id: 'demo-cron-005', agentId: 'monitor', name: 'GitHub Releases watch (every 18h)',
+    description: 'Track GitHub releases for monitored repos.',
+    enabled: true, schedule: { kind: 'every', everyMs: 64800000 },
+    state: { lastRunAtMs: now - 6 * hour, lastRunStatus: 'ok', lastDurationMs: 19486, nextRunAtMs: now + 12 * hour, consecutiveErrors: 0 },
+  },
+  {
+    id: 'demo-cron-006', agentId: 'main', name: 'Daily morning greeting (8AM)',
+    description: '', enabled: true, schedule: { kind: 'cron', expr: '0 8 * * *', tz: 'UTC' },
+    state: { lastRunAtMs: now - 2 * hour, lastRunStatus: 'ok', lastDurationMs: 10134, nextRunAtMs: now + 22 * hour, consecutiveErrors: 0 },
+  },
+  {
+    id: 'demo-cron-007', agentId: 'craftsman', name: 'Weekly product idea pipeline (Part 1)',
+    description: 'Analysis phase — generate feature ideas with code analysis.',
+    enabled: true, schedule: { kind: 'cron', expr: '0 9 * * 6', tz: 'UTC' },
+    state: { lastRunAtMs: now - 5 * day, lastRunStatus: 'error', lastDurationMs: 360043, nextRunAtMs: now + 2 * day, consecutiveErrors: 1, lastError: 'Error: job execution timed out' },
+  },
+  {
+    id: 'demo-cron-008', agentId: 'monitor', name: 'One-time reminder: renew subscription',
+    description: '', enabled: false, schedule: { kind: 'at', at: '2025-03-05T01:00:00.000Z' },
+    state: { lastRunAtMs: now - 10 * day, lastRunStatus: 'ok', lastDurationMs: 6743, consecutiveErrors: 0 },
+  },
+];
+
 export const DEMO_WORKSPACES: DemoWorkspace[] = [
   {
     name: 'workspace',

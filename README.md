@@ -1,90 +1,76 @@
-[繁體中文](./README.zh-TW.md) | **English**
-
 # Agents Dashboard
 
-A web-based dashboard for managing LanceDB vector memories — browse, search, edit memories, manage workspace files, and explore skills.
+OpenClaw agent 管理儀表板，提供 Web 介面管理記憶、agents、排程任務與 skills。
 
-**Live Demo: [demo-memory-dashboard.simple-web.cc](https://demo-memory-dashboard.simple-web.cc/)**
+## 功能
 
-## Features
+### MEMORY
+- **記憶瀏覽** — 以 scope / category 篩選，支援全文搜尋
+- **記憶管理** — 新增、編輯、刪除記憶（自動產生 embedding）
+- **Workspace 管理** — 檢視和編輯 workspace 標準檔案（MEMORY.md, IDENTITY.md 等）
+- **統計儀表板** — 各 scope / category 的記憶數量統計
 
-- **Memory Browser** — Filter by scope / category, full-text search
-- **Memory CRUD** — Create, edit, delete memories with auto-generated embeddings
-- **Workspace Manager** — View and edit standard workspace files (MEMORY.md, IDENTITY.md, etc.)
-- **Skills Dashboard** — Browse skills across global, shared, and agent-level sources
-- **Stats Dashboard** — Memory counts by scope and category
-- **Demo Mode** — Built-in sample data, no external dependencies required
+### AGENTS
+- **Agent 總覽** — 列出所有 agents，顯示 model、職責描述、subagents 數量
+- **Agent 詳情** — model、workspace、subagents 列表、Discord/Telegram channel bindings
 
-## Quick Start — Demo Mode
+### CRON JOBS
+- **排程任務列表** — 顯示所有 cron jobs，含排程表達式、啟用狀態、執行歷史
+- **狀態監控** — 上次執行結果、耗時、下次執行時間、連續錯誤數
+- **篩選** — 按 agent / 狀態（enabled/disabled/errors）篩選
 
-No LanceDB or OpenAI API key needed. Try the full UI instantly:
+### SKILLS
+- **Skills 瀏覽** — 瀏覽 global / shared / agent 三層級 skills
+
+### 側邊欄
+- **統一導航** — 左側可收合的 MEMORY / AGENTS / CRON JOBS / SKILLS 四大區塊
+
+## 快速開始
+
+### 前置需求
+
+- Node.js 22+
+- LanceDB 資料庫（位於 `MEMORY_DB_PATH`）
+- OpenAI API key
+
+### 安裝與執行
 
 ```bash
 npm install
+
+# 開發模式（前端 hot reload + 後端需另行啟動）
+npm run dev
+
+# 建置
 npm run build
-DEMO_MODE=true npm run server
-# → http://localhost:3001
+
+# 啟動生產伺服器
+OPENAI_API_KEY=sk-xxx npm run server
 ```
 
-### Docker (Demo Mode)
+### Docker
 
 ```bash
-docker build -t memory-dashboard .
-docker run -p 3001:3001 -e DEMO_MODE=true memory-dashboard
-```
-
-## Production Usage
-
-Connect to a real LanceDB database:
-
-```bash
-npm install
-npm run build
-OPENAI_API_KEY=your-key-here \
-  MEMORY_DB_PATH=/path/to/lancedb \
-  WORKSPACE_DIR=/path/to/workspaces \
-  npm run server
-```
-
-### Docker (Production)
-
-```bash
-docker build -t memory-dashboard .
+docker build -t agents-dashboard .
 docker run -p 3001:3001 \
-  -v /path/to/workspaces:/data/workspaces \
-  -v /path/to/memory-db:/data/memory-db \
-  -e OPENAI_API_KEY=your-key-here \
-  memory-dashboard
+  -v /path/to/openclaw:/data/openclaw \
+  -e OPENAI_API_KEY=sk-xxx \
+  agents-dashboard
 ```
 
-## Environment Variables
+## 環境變數
 
-| Variable | Default | Description |
+| 變數 | 預設值 | 說明 |
 |---|---|---|
-| `DEMO_MODE` | `false` | Enable demo mode (in-memory sample data) |
-| `PORT` | `3001` | Server listen port |
-| `DIST_DIR` | `../dist` | Frontend static files directory |
-| `WORKSPACE_DIR` | `/data/workspaces` | Workspace root directory |
-| `MEMORY_DB_PATH` | `/data/memory-db` | LanceDB database path |
-| `MEMORY_TABLE_NAME` | `memories` | LanceDB table name |
-| `EMBEDDING_MODEL` | `text-embedding-3-small` | OpenAI embedding model |
-| `OPENAI_API_KEY` | — | OpenAI API key (required in non-demo mode) |
-| `SKILLS_DIR` | `~/.claude/skills` | Global skills directory |
+| `PORT` | `3001` | 伺服器監聯 port |
+| `DIST_DIR` | `../dist` | 前端靜態檔案目錄 |
+| `OPENCLAW_DIR` | `/data/openclaw` | OpenClaw workspace 根目錄 |
+| `MEMORY_DB_PATH` | `/data/openclaw/memory/lancedb-pro` | LanceDB 資料庫路徑 |
+| `OPENAI_API_KEY` | — | OpenAI API key（必填） |
 
-## Tech Stack
+## 技術架構
 
-- **Frontend**: React 19 + Vite 6 + TypeScript
-- **Backend**: Node.js native HTTP server (no framework)
-- **Database**: LanceDB (vector search)
+- **前端**: React 19 + Vite 6 + TypeScript
+- **後端**: Node.js 原生 HTTP server
+- **資料庫**: LanceDB（向量搜尋）
 - **Embeddings**: OpenAI `text-embedding-3-small`
-
-## Development
-
-```bash
-npm run dev    # Frontend dev server (proxy /api → localhost:3001)
-npm run build  # Build frontend + compile server
-```
-
-## License
-
-MIT
