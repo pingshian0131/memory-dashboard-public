@@ -7,7 +7,7 @@ Dashboard for [OpenClaw](https://github.com/open-claw/openclaw) agents — memor
 ## Install
 
 ```
-npx @openclaw/agents-terminal-dashboard
+npx @pingshian/agents-terminal-dashboard
 ```
 
 Requires Node.js 20+. Auto-detects `~/.openclaw-personal`.

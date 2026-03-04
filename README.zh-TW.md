@@ -9,7 +9,7 @@
 ## 安裝
 
 ```
-npx @openclaw/agents-terminal-dashboard
+npx @pingshian/agents-terminal-dashboard
 ```
 
 需要 Node.js 20+。自動偵測 `~/.openclaw-personal`。
