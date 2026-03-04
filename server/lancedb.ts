@@ -9,7 +9,18 @@ const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'text-embedding-3-small';
 let db: lancedb.Connection | null = null;
 let table: lancedb.Table | null = null;
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const hasEmbeddingKey = !!process.env.OPENAI_API_KEY;
+
+let openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is required for vector search and memory write operations');
+    }
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return openai;
+}
 
 async function getTable(): Promise<lancedb.Table> {
   if (table) return table;
@@ -37,7 +48,7 @@ export interface MemoryInput {
 }
 
 async function embed(text: string): Promise<number[]> {
-  const res = await openai.embeddings.create({
+  const res = await getOpenAI().embeddings.create({
     model: EMBEDDING_MODEL,
     input: text,
   });
@@ -65,15 +76,19 @@ export async function listMemories(opts: {
   const allRows = await countQuery.select(['id']).toArray();
   const total = allRows.length;
 
-  // If search keyword, use full-text search
+  // If search keyword
   if (opts.search && opts.search.trim()) {
-    const searchQuery = t.search(opts.search, 'text').select(['id', 'text', 'category', 'scope', 'importance', 'timestamp', 'metadata']).limit(limit + offset);
-    if (filters.length > 0) searchQuery.where(filters.join(' AND '));
-    const results = await searchQuery.toArray();
-    const sliced = results.slice(offset, offset + limit);
+    // Text filter: case-insensitive substring match on text field
+    const keyword = opts.search.trim().toLowerCase();
+    let query = t.query().select(['id', 'text', 'category', 'scope', 'importance', 'timestamp', 'metadata']);
+    if (filters.length > 0) query = query.where(filters.join(' AND '));
+    const allSearchRows = await query.toArray();
+    const matched = allSearchRows.filter((r: any) => (r.text ?? '').toLowerCase().includes(keyword));
+    matched.sort((a: any, b: any) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+    const sliced = matched.slice(offset, offset + limit);
     return {
       memories: sliced.map(rowToMemory),
-      total: results.length,
+      total: matched.length,
     };
   }
 
@@ -99,6 +114,7 @@ export async function getMemory(id: string): Promise<MemoryRecord | null> {
 }
 
 export async function createMemory(input: MemoryInput): Promise<MemoryRecord> {
+  if (!hasEmbeddingKey) throw new Error('OPENAI_API_KEY is required to create memories');
   const t = await getTable();
   const id = randomUUID();
   const vector = await embed(input.text);
@@ -118,6 +134,7 @@ export async function createMemory(input: MemoryInput): Promise<MemoryRecord> {
 }
 
 export async function updateMemory(id: string, input: Partial<MemoryInput>): Promise<MemoryRecord | null> {
+  if (input.text && !hasEmbeddingKey) throw new Error('OPENAI_API_KEY is required to update memory text');
   const t = await getTable();
   const existing = await getMemory(id);
   if (!existing) return null;
