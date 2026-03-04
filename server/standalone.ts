@@ -80,5 +80,5 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Memory Dashboard running on http://0.0.0.0:${PORT}`);
+  console.log(`Agents Dashboard running on http://localhost:${PORT}`);
 });

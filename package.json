@@ -1,14 +1,30 @@
 {
-  "name": "memory-dashboard",
+  "name": "@openclaw/agents-terminal-dashboard",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "description": "Dashboard for OpenClaw agents — memory, agents, cron jobs, skills",
+  "bin": {
+    "agents-dashboard": "./bin/cli.js"
+  },
+  "files": [
+    "dist/",
+    "dist-server/",
+    "bin/"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build && tsc -p tsconfig.server.json",
     "build:all": "npm run build",
     "preview": "vite preview",
-    "server": "node dist-server/server/standalone.js"
+    "server": "node dist-server/server/standalone.js",
+    "start": "node bin/cli.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["openclaw", "agents", "dashboard", "memory", "cron"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pingshian0131/agents-dashboard-public"
   },
   "dependencies": {
     "@lancedb/lancedb": "^0.15.0",
