@@ -7,7 +7,6 @@ const TABLE_NAME = process.env.MEMORY_TABLE_NAME || 'memories';
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'text-embedding-3-small';
 
 let db: lancedb.Connection | null = null;
-let table: lancedb.Table | null = null;
 
 const hasEmbeddingKey = !!process.env.OPENAI_API_KEY;
 
@@ -23,10 +22,8 @@ function getOpenAI(): OpenAI {
 }
 
 async function getTable(): Promise<lancedb.Table> {
-  if (table) return table;
-  db = await lancedb.connect(MEMORY_DB_PATH);
-  table = await db.openTable(TABLE_NAME);
-  return table;
+  if (!db) db = await lancedb.connect(MEMORY_DB_PATH);
+  return db.openTable(TABLE_NAME);
 }
 
 export interface MemoryRecord {
@@ -73,7 +70,7 @@ export async function listMemories(opts: {
   // Get total count
   let countQuery = t.query();
   if (filters.length > 0) countQuery = countQuery.where(filters.join(' AND '));
-  const allRows = await countQuery.select(['id']).toArray();
+  const allRows = await countQuery.select(['id']).limit(100000).toArray();
   const total = allRows.length;
 
   // If search keyword
@@ -82,7 +79,7 @@ export async function listMemories(opts: {
     const keyword = opts.search.trim().toLowerCase();
     let query = t.query().select(['id', 'text', 'category', 'scope', 'importance', 'timestamp', 'metadata']);
     if (filters.length > 0) query = query.where(filters.join(' AND '));
-    const allSearchRows = await query.toArray();
+    const allSearchRows = await query.limit(100000).toArray();
     const matched = allSearchRows.filter((r: any) => (r.text ?? '').toLowerCase().includes(keyword));
     matched.sort((a: any, b: any) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
     const sliced = matched.slice(offset, offset + limit);
@@ -163,7 +160,7 @@ export async function deleteMemory(id: string): Promise<boolean> {
 
 export async function getScopes(): Promise<{ scope: string; count: number }[]> {
   const t = await getTable();
-  const rows = await t.query().select(['scope']).toArray();
+  const rows = await t.query().select(['scope']).limit(100000).toArray();
   const counts = new Map<string, number>();
   for (const r of rows) {
     const s = (r as any).scope ?? 'unknown';
@@ -180,7 +177,7 @@ export async function getStats(): Promise<{
   byCategory: { category: string; count: number }[];
 }> {
   const t = await getTable();
-  const rows = await t.query().select(['scope', 'category']).toArray();
+  const rows = await t.query().select(['scope', 'category']).limit(100000).toArray();
   const scopeCounts = new Map<string, number>();
   const catCounts = new Map<string, number>();
   for (const r of rows) {
