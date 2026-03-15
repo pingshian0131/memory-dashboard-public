@@ -2,7 +2,7 @@
 
 Dashboard for [OpenClaw](https://github.com/open-claw/openclaw) agents — browse vector memories, manage workspace files, view agents, cron jobs, and skills.
 
-**[Live Demo](https://demo-agents-dashboard.ping-claw.cc/)**
+**[Live Demo](https://agents-demo.simple-web.cc/)**
 
 ## Quick Start
 
